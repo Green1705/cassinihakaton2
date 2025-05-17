@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Maps Integration</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<h2 style="text-align: center;">My Map</h2>
+<div id="map"></div>
+
+<!-- Replace YOUR_API_KEY with your real key -->
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwmfAmEiF-BFOaK0XwlV6HMrnzW78zUbw&callback=initMap">
+</script>
+
+<script>
+  let map;
+  let userMarker;
+
+  function initMap() {
+    // Set a default location (e.g., center of Europe)
+    const defaultLocation = { lat: 50.1109, lng: 8.6821 }; // Frankfurt, DE
+
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: defaultLocation,
+      zoom: 10,
+    });
+
+    userMarker = new google.maps.Marker({
+      position: defaultLocation,
+      map,
+      title: "Your Location",
+    });
+
+    // Try HTML5 geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          userMarker.setPosition(pos);
+          map.setCenter(pos);
+        },
+        () => {
+          alert("Geolocation failed or permission denied.");
+        }
+      );
+    } else {
+      alert("Your browser doesn't support geolocation.");
+    }
+  }
+</script>
+
+</body>
+</html>

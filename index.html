@@ -33,17 +33,57 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let map, myMarker, otherMarker;
+  let map;
+  let myUserId;
+  const userMarkers = {}; // Store markers for all users
 
   function initMap() {
+    // Prompt for user ID
+    myUserId = prompt("Enter your user ID (e.g., user1 or user2):", "user1");
+    if (!myUserId) {
+      alert("User ID is required!");
+      return;
+    }
+
+    // Check if user exists, if not, create a new one
+    db.ref("users/" + myUserId).once("value", (snapshot) => {
+      if (!snapshot.exists()) {
+        db.ref("users/" + myUserId).set({ lat: null, lng: null });
+      }
+    });
+
     const defaultLocation = { lat: 50.1109, lng: 8.6821 };
     map = new google.maps.Map(document.getElementById("map"), {
       center: defaultLocation,
       zoom: 13,
     });
 
-    myMarker = new google.maps.Marker({ map, label: "Me" });
-    otherMarker = new google.maps.Marker({ map, label: "Other" });
+    // Listen for all users' locations and update/add markers in real time
+    db.ref("users").on("value", (snapshot) => {
+      const users = snapshot.val();
+      if (!users) return;
+      Object.keys(users).forEach((userId) => {
+        const pos = users[userId];
+        if (pos && pos.lat !== null && pos.lng !== null) {
+          // If marker doesn't exist, create it
+          if (!userMarkers[userId]) {
+            userMarkers[userId] = new google.maps.Marker({
+              map,
+              label: userId,
+              title: userId,
+            });
+          }
+          userMarkers[userId].setPosition(pos);
+        }
+      });
+      // Optionally, remove markers for users that no longer exist
+      Object.keys(userMarkers).forEach((userId) => {
+        if (!users[userId] || users[userId].lat === null || users[userId].lng === null) {
+          userMarkers[userId].setMap(null);
+          delete userMarkers[userId];
+        }
+      });
+    });
 
     // Start location tracking
     if (navigator.geolocation) {
@@ -53,22 +93,18 @@
           lng: position.coords.longitude,
         };
 
-        myMarker.setPosition(myPos);
-        map.setCenter(myPos);
+        // Center map on self
+        if (userMarkers[myUserId]) {
+          userMarkers[myUserId].setPosition(myPos);
+          map.setCenter(myPos);
+        }
 
         // Send to Firebase
-        db.ref("users/user1").set(myPos);
+        db.ref("users/" + myUserId).set(myPos);
       });
     }
-
-    // Listen for other user's location
-    db.ref("users/user2").on("value", (snapshot) => {
-      const otherPos = snapshot.val();
-      if (otherPos) {
-        otherMarker.setPosition(otherPos);
-      }
-    });
   }
 </script>
 </body>
 </html>
+

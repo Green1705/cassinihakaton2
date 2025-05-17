@@ -1,63 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Maps Integration</title>
+  <title>Track Another User</title>
   <style>
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
+    #map { height: 100vh; width: 100%; }
   </style>
 </head>
 <body>
 
-<h2 style="text-align: center;">My Map</h2>
+<h2 style="text-align:center;">Live Tracking Map</h2>
 <div id="map"></div>
 
-<!-- Replace YOUR_API_KEY with your real key -->
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwmfAmEiF-BFOaK0XwlV6HMrnzW78zUbw&callback=initMap">
-</script>
+<!-- Firebase + Google Maps -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwmfAmEiF-BFOaK0XwlV6HMrnzW78zUbw&callback=initMap" async defer></script>
 
 <script>
-  let map;
-  let userMarker;
+  // Replace with your Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_KEY",
+    authDomain: "yourapp.firebaseapp.com",
+    databaseURL: "https://yourapp.firebaseio.com",
+    projectId: "yourapp",
+    storageBucket: "yourapp.appspot.com",
+    messagingSenderId: "xxxxxx",
+    appId: "1:xxxxxx:web:xxxx"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let map, myMarker, otherMarker;
 
   function initMap() {
-    // Set a default location (e.g., center of Europe)
-    const defaultLocation = { lat: 50.1109, lng: 8.6821 }; // Frankfurt, DE
-
+    const defaultLocation = { lat: 50.1109, lng: 8.6821 };
     map = new google.maps.Map(document.getElementById("map"), {
       center: defaultLocation,
-      zoom: 10,
+      zoom: 13,
     });
 
-    userMarker = new google.maps.Marker({
-      position: defaultLocation,
-      map,
-      title: "Your Location",
-    });
+    myMarker = new google.maps.Marker({ map, label: "Me" });
+    otherMarker = new google.maps.Marker({ map, label: "Other" });
 
-    // Try HTML5 geolocation
+    // Start location tracking
     if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          userMarker.setPosition(pos);
-          map.setCenter(pos);
-        },
-        () => {
-          alert("Geolocation failed or permission denied.");
-        }
-      );
-    } else {
-      alert("Your browser doesn't support geolocation.");
+      navigator.geolocation.watchPosition((position) => {
+        const myPos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+
+        myMarker.setPosition(myPos);
+        map.setCenter(myPos);
+
+        // Send to Firebase
+        db.ref("users/user1").set(myPos);
+      });
     }
+
+    // Listen for other user's location
+    db.ref("users/user2").on("value", (snapshot) => {
+      const otherPos = snapshot.val();
+      if (otherPos) {
+        otherMarker.setPosition(otherPos);
+      }
+    });
   }
 </script>
-
 </body>
 </html>

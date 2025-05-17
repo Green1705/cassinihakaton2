@@ -45,6 +45,26 @@
       return;
     }
 
+    // Add a button to delete a user
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete a User";
+    deleteBtn.style.position = "absolute";
+    deleteBtn.style.top = "10px";
+    deleteBtn.style.right = "10px";
+    deleteBtn.style.zIndex = 1000;
+    document.body.appendChild(deleteBtn);
+
+    deleteBtn.onclick = function() {
+      const userToDelete = prompt("Enter the user ID to delete:");
+      if (userToDelete) {
+        db.ref("users/" + userToDelete).remove().then(() => {
+          alert("User '" + userToDelete + "' deleted.");
+        }).catch((err) => {
+          alert("Error deleting user: " + err.message);
+        });
+      }
+    };
+
     // Check if user exists, if not, create a new one
     db.ref("users/" + myUserId).once("value", (snapshot) => {
       if (!snapshot.exists()) {
@@ -107,4 +127,3 @@
 </script>
 </body>
 </html>
-
